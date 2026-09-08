@@ -2,6 +2,12 @@ name: Nepal Electrical Jobs Agent
 
 on:
   workflow_dispatch:
+    inputs:
+      test_telegram:
+        description: "Send a Telegram connectivity test instead of checking vacancies"
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: "15 0 * * *"
     - cron: "15 6 * * *"
@@ -23,8 +29,13 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python -m app.main
+          TEST_TELEGRAM: ${{ inputs.test_telegram }}
+        run: |
+          if [ "$TEST_TELEGRAM" = "true" ]; then
+            python -m app.main --test-telegram
+          else
+            python -m app.main
+          fi
       - name: Commit state
         run: |
           git config user.name "vacancy-agent"

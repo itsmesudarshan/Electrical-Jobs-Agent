@@ -1,0 +1,5 @@
+{
+  "sources": {"nea": true, "nepal_impact": true, "jobsnepal": false, "kumarijob": false},
+  "notification": {"minimum_score": 65, "only_new": true},
+  "http": {"timeout_seconds": 25, "delay_between_requests_seconds": 2}
+}

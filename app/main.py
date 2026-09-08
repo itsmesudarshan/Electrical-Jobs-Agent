@@ -19,7 +19,7 @@ def collect_all():
     for name, collector in collectors:
         try:
             found = collector()
-            print(f"[{name}] found {len(found)} candidate(s)")
+            print(f"[{name}] found {len(found)} relevant active candidate(s)")
             jobs.extend(found)
         except Exception as e:
             print(f"[{name}] ERROR: {type(e).__name__}: {e}")
@@ -44,7 +44,13 @@ def format_message(job, score_value, reasons):
     if job.url: lines += ["", f"🔗 {job.url}"]
     return "\n".join(lines)
 
-def run(dry_run=False):
+def run(dry_run=False, test_telegram=False):
+    if test_telegram:
+        message = "✅ Nepal Electrical Jobs Agent Telegram test successful.\n\nThe bot can send alerts to this chat."
+        send(message)
+        print("Telegram test completed")
+        return
+
     state = load()
     jobs = collect_all()
     notified = 0
@@ -53,10 +59,9 @@ def run(dry_run=False):
     for job in jobs:
         key = job_key(job)
         value, reasons = score(job, PROFILE)
+        print(f"[MATCH] {value}/100 | {job.title}")
         if key in state.get("seen", {}):
             continue
-
-        mark_seen(state, key, job)
         if value < minimum:
             continue
 
@@ -64,10 +69,13 @@ def run(dry_run=False):
         print("\n" + message + "\n")
         if not dry_run:
             try:
-                send(message)
-                notified += 1
+                if send(message):
+                    notified += 1
+                    mark_seen(state, key, job)
             except Exception as e:
                 print(f"Telegram ERROR: {type(e).__name__}: {e}")
+        else:
+            mark_seen(state, key, job)
 
     state["last_run"] = datetime.now(timezone.utc).isoformat()
     save(state)
@@ -76,4 +84,6 @@ def run(dry_run=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
-    run(dry_run=parser.parse_args().dry_run)
+    parser.add_argument("--test-telegram", action="store_true")
+    args = parser.parse_args()
+    run(dry_run=args.dry_run, test_telegram=args.test_telegram)
